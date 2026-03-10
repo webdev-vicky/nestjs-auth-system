@@ -72,21 +72,17 @@ $ npm run docker:down
 
 ## Author
 
-👤 **Anil Ahir**
+👤 **Prakash Kumar Mandal**
 
-- Twitter: [@anilahir220](https://twitter.com/anilahir220)
-- Github: [@anilahir](https://github.com/anilahir)
-- LinkedIn: [@anilahir](https://www.linkedin.com/in/anilahir)
+
+- Github: [@prakash-mandal](https://github.com/bytecodepandit)
+- LinkedIn: [@prakash-mandal](https://www.linkedin.com/in/prakash-mandal-5b25651bb/)
 
 ## Show your support
 
 Give a ⭐️ if this project helped you!
 
-## Related projects
 
-Explore more NestJS example projects:
-
-[![GraphQL example](https://github-readme-stats.vercel.app/api/pin/?username=anilahir&repo=nestjs-graphql-demo)](https://github.com/anilahir/nestjs-graphql-demo)
 
 ## License
 

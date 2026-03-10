@@ -2,7 +2,7 @@
   "name": "nestjs-authentication-and-authorization",
   "version": "0.0.1",
   "description": "NestJS authentication and authorization using Bcrypt, JWT & Redis",
-  "author": "Anil Ahir",
+  "author": "Prakash Kumar Mandal",
   "private": false,
   "license": "MIT",
   "scripts": {

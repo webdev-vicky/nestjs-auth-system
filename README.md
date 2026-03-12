@@ -63,7 +63,7 @@ $ npm run docker:down
 
 ## Swagger documentation
 
-- [localhost:3000/docs](http://localhost:3000/docs)
+- [https://nestjs-auth-system-production.up.railway.app/docs](https://nestjs-auth-system-production.up.railway.app/docs)
 
 ## References
 

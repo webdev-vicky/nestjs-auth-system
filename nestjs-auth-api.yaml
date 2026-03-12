@@ -27,23 +27,55 @@ spec:
     spec:
       containers:
       - name: api
-        image: bytecodepandit/nestjs-auth-system:latest # Change to your Hub image
+        image: nestjs-auth-api:latest
+        imagePullPolicy: Never
         env:
         - name: PORT
           value: "3000"
+        - name: NODE_ENV
+          value: "development"
         - name: DB_HOST
           value: "nestjs-auth-mysql"
-        - name: REDIS_HOST
-          value: "nestjs-auth-redis"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_USER
+          value: "root"
+        - name: DB_NAME
+          value: "nest-jwt-authentication"
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: nestjs-auth-secrets
               key: DB_PASSWORD
+        - name: REDIS_HOST
+          value: "nestjs-auth-redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_USERNAME
+          value: "default"
+        - name: REDIS_DATABASE
+          value: "1"
+        - name: REDIS_KEY_PREFIX
+          value: "nest-auth"
         - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
               name: nestjs-auth-secrets
               key: REDIS_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: nestjs-auth-secrets
+              key: JWT_SECRET
+        - name: JWT_ACCESS_TOKEN_TTL
+          value: "3600"
+        - name: SWAGGER_SITE_TITLE
+          value: "The NestJs Authentication API"
+        - name: SWAGGER_DOC_TITLE
+          value: "NestJs Authentication"
+        - name: SWAGGER_DOC_DESCRIPTION
+          value: "The NestJs Authentication API"
+        - name: SWAGGER_DOC_VERSION
+          value: "1.0"
         ports:
         - containerPort: 3000

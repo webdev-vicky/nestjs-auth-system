@@ -24,7 +24,7 @@ export class User {
   email: string;
 
   @ApiProperty({ description: 'Role of user', example: 'user' })
-  @Column()
+  @Column({ default: 'user' })
   role: string;
 
   @ApiHideProperty()

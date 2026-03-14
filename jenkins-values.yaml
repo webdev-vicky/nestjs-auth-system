@@ -1,0 +1,155 @@
+controller:
+  runAsUser: 1000
+  fsGroup: 1000
+  nodeSelector:
+    kubernetes.io/hostname: minikube
+
+  # ── Plugins ────────────────────────────────────────────────────
+  installPlugins:
+    - kubernetes:latest
+    - workflow-aggregator:latest       # Pipeline
+    - git:latest                       # Git
+    - github:latest                    # GitHub integration
+    - github-branch-source:latest      # GitHub repo scanning
+    - nodejs:latest                    # Node.js tool
+    - docker-workflow:latest           # Docker in pipeline
+    - docker-plugin:latest             # Docker build & publish
+    - credentials-binding:latest       # Bind credentials to env vars
+    - plain-credentials:latest         # Secret text credentials
+    - pipeline-stage-view:latest       # Pipeline stage visualization
+    - blueocean:latest                 # Blue Ocean UI
+    - configuration-as-code:latest     # JCasC
+
+  # ── JCasC — Jenkins Configuration as Code ─────────────────────
+  JCasC:
+    defaultConfig: true
+    configScripts:
+      # Node.js tool installation
+      tools: |
+        tool:
+          nodejs:
+            installations:
+              - name: "NodeJS-22"
+                properties:
+                  - installSource:
+                      installers:
+                        - nodeJSInstaller:
+                            id: "22.14.0"
+                            npmPackagesRefreshHours: 72
+
+      # GitHub server config (add your token in credentials first)
+      github-server: |
+        unclassified:
+          githubPluginConfig:
+            configs:
+              - name: "GitHub"
+                apiUrl: "https://api.github.com"
+                credentialsId: "GITHUB_TOKEN"
+                manageHooks: false
+
+      # Global environment variables from .env
+      env-vars: |
+        jenkins:
+          globalNodeProperties:
+            - envVars:
+                env:
+                  - key: "PORT"
+                    value: "3000"
+                  - key: "NODE_ENV"
+                    value: "development"
+                  - key: "DB_HOST"
+                    value: "localhost"
+                  - key: "DB_PORT"
+                    value: "3306"
+                  - key: "DB_USER"
+                    value: "root"
+                  - key: "DB_NAME"
+                    value: "nest-jwt-authentication"
+                  - key: "REDIS_HOST"
+                    value: "localhost"
+                  - key: "REDIS_PORT"
+                    value: "6379"
+                  - key: "REDIS_USERNAME"
+                    value: "rootredis"
+                  - key: "REDIS_DATABASE"
+                    value: "1"
+                  - key: "REDIS_KEY_PREFIX"
+                    value: "nest-auth"
+                  - key: "JWT_ACCESS_TOKEN_TTL"
+                    value: "3600"
+                  - key: "SWAGGER_SITE_TITLE"
+                    value: "The NestJs Authentication API"
+                  - key: "SWAGGER_DOC_TITLE"
+                    value: "NestJs Authentication"
+                  - key: "SWAGGER_DOC_DESCRIPTION"
+                    value: "The NestJs Authentication API"
+                  - key: "SWAGGER_DOC_VERSION"
+                    value: "1.0"
+
+      # Credentials — secrets (DB_PASSWORD, REDIS_PASSWORD, JWT_SECRET, GITHUB_TOKEN)
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - string:
+                      scope: GLOBAL
+                      id: "DB_PASSWORD"
+                      description: "Database password"
+                      secret: "password"
+                  - string:
+                      scope: GLOBAL
+                      id: "REDIS_PASSWORD"
+                      description: "Redis password"
+                      secret: "password"
+                  - string:
+                      scope: GLOBAL
+                      id: "JWT_SECRET"
+                      description: "JWT signing secret"
+                      secret: "my_secret_key"
+                  - string:
+                      scope: GLOBAL
+                      id: "GITHUB_TOKEN"
+                      description: "GitHub personal access token"
+                      secret: "YOUR_GITHUB_TOKEN_HERE"
+
+  # ── Docker socket + binary mount (for docker build inside Jenkins) ──
+  volumes:
+    - name: docker-sock
+      hostPath:
+        path: /var/run/docker.sock
+        type: Socket
+    - name: docker-bin
+      hostPath:
+        path: /usr/bin/docker
+        type: File
+    - name: docker-libexec
+      hostPath:
+        path: /usr/libexec/docker
+        type: DirectoryOrCreate
+
+  volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+    - name: docker-bin
+      mountPath: /usr/bin/docker
+    - name: docker-libexec
+      mountPath: /usr/libexec/docker
+
+  # ── Number of executors on built-in node ──────────────────────
+  numExecutors: 2
+
+  # ── Install docker CLI on startup ─────────────────────────────
+  initializeOnce: true
+  lifecycle:
+    postStart:
+      exec:
+        command:
+          - "/bin/sh"
+          - "-c"
+          - |
+            if [ ! -f /var/jenkins_home/bin/docker ]; then
+              mkdir -p /var/jenkins_home/bin
+              curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-29.0.0.tgz | tar xz --strip-components=1 -C /var/jenkins_home/bin docker/docker
+              chmod +x /var/jenkins_home/bin/docker
+            fi

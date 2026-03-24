@@ -1,7 +1,8 @@
 services:
+  # ─── Local Development ────────────────────────────────────────────────────
   nestjs-auth-api:
     container_name: nestjs-auth-api
-    image: nestjs-auth-api
+    image: nestjs-auth-api:latest
     restart: unless-stopped
     build:
       context: .
@@ -9,12 +10,12 @@ services:
       target: development # Only will build development stage from our dockerfile
     volumes:
       - ./:/usr/src/app
-      - /usr/src/app/node_modules 
+      - /usr/src/app/node_modules
     ports:
       - ${PORT}:${PORT}
     networks:
       - nestjs-auth-intranet
-    env_file: 
+    env_file:
       - .env # Available inside container not in compose file
     environment:
       - DB_HOST=nestjs-auth-mysql
@@ -40,11 +41,6 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
       TZ: 'utc'
-    # MySQL 8.x enables caching_sha2_password by default. the old
-    # "default-authentication-plugin" command-line option is no longer
-    # recognised in 8.1+ and causes startup failures.  We rely on the
-    # engine's default and can adjust user plugins with SQL if necessary.
-    #command: --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ['CMD', 'mysqladmin', '-u${DB_USER}', '-p${DB_PASSWORD}', 'ping']
       interval: 5s
@@ -67,6 +63,61 @@ services:
       interval: 5s
       retries: 3
       timeout: 3s
+
+  # ─── Kubernetes Deploy (profile: k8s) ─────────────────────────────────────
+  # Usage:
+  #   docker compose --profile k8s build          # build the image
+  #   docker compose --profile k8s run k8s-deploy # build image + apply all K8s manifests
+  #
+  # Applies (in order):
+  #   nestjs-auth-secrets.yaml     → Secret + ConfigMap
+  #   nestjs-auth-mysql.yaml       → MySQL Service + Deployment
+  #   nestjs-auth-redis.yaml       → Redis Service + Deployment
+  #   nestjs-auth-api.yaml         → API NodePort Service + Deployment
+  #   nestjs-api-loadbalancer.yaml → LoadBalancer Service (MetalLB)
+  #   nestjs-api-hpa.yaml          → HorizontalPodAutoscaler
+  #   metallb-config.yaml          → MetalLB IPAddressPool + L2Advertisement
+  #   nestjs-api-m02-deployment.yaml → m02-node Deployment
+  k8s-build:
+    profiles: ["k8s"]
+    container_name: nestjs-auth-k8s-build
+    image: nestjs-auth-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+
+  k8s-deploy:
+    profiles: ["k8s"]
+    image: bitnami/kubectl:latest
+    volumes:
+      - ${USERPROFILE}/.kube:/root/.kube:ro
+      - .:/workspace:ro
+    working_dir: /workspace
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "==> Applying Secrets & ConfigMap..."
+        kubectl apply -f nestjs-auth-secrets.yaml
+        echo "==> Applying MySQL..."
+        kubectl apply -f nestjs-auth-mysql.yaml
+        echo "==> Applying Redis..."
+        kubectl apply -f nestjs-auth-redis.yaml
+        echo "==> Applying NestJS API (NodePort + Deployment)..."
+        kubectl apply -f nestjs-auth-api.yaml
+        echo "==> Applying LoadBalancer Service..."
+        kubectl apply -f nestjs-api-loadbalancer.yaml
+        echo "==> Applying HPA..."
+        kubectl apply -f nestjs-api-hpa.yaml
+        echo "==> Applying MetalLB config..."
+        kubectl apply -f metallb-config.yaml
+        echo "==> Applying m02-node Deployment..."
+        kubectl apply -f nestjs-api-m02-deployment.yaml
+        echo "✔  All manifests applied successfully."
+    depends_on:
+      k8s-build:
+        condition: service_completed_successfully
 
 volumes:
   mysql:
